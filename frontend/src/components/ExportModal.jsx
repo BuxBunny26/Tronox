@@ -28,7 +28,7 @@ export default function ExportModal({ onClose, initialFilters = {} }) {
         .from('job_cards')
         .select(`
           id, order_no, description_of_work_order, status, basic_start_date,
-          order_priority, maintenance_activity_type, maintenance_type,
+          order_priority, maintenance_activity_type,
           main_work_centre_text, created_at,
           plants(name),
           profiles!assigned_to(full_name, email)
@@ -48,7 +48,7 @@ export default function ExportModal({ onClose, initialFilters = {} }) {
       const plantName   = plants.find(p => p.id === plantId)?.name ?? ''
       const filters     = { dateFrom, dateTo, statusLabel, plantName }
 
-      if (format === 'pdf') exportListPDF(data, filters)
+      if (format === 'pdf') await exportListPDF(data, filters)
       else exportListExcel(data, filters)
       onClose()
     } catch (err) {

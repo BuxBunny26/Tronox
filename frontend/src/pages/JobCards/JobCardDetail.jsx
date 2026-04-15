@@ -25,6 +25,7 @@ export default function JobCardDetail() {
   const [downtime, setDowntime] = useState([])
   const [loading, setLoading]   = useState(true)
   const [exportOpen, setExportOpen] = useState(false)
+  const [exporting, setExporting]   = useState(false)
   const exportRef = useRef(null)
 
   // Close export dropdown on outside click
@@ -121,16 +122,21 @@ export default function JobCardDetail() {
           <div className="relative" ref={exportRef}>
             <button
               onClick={() => setExportOpen(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
+              disabled={exporting}
+              className="flex items-center gap-1.5 px-3 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-60"
             >
               <Download size={14} />
-              Export
+              {exporting ? 'Exporting…' : 'Export'}
               <ChevronDown size={12} className={`transition-transform ${exportOpen ? 'rotate-180' : ''}`} />
             </button>
             {exportOpen && (
               <div className="absolute right-0 mt-1 w-36 bg-white rounded-xl shadow-lg border border-slate-200 z-20 overflow-hidden">
                 <button
-                  onClick={() => { exportDetailPDF(exportData()); setExportOpen(false) }}
+                  onClick={() => {
+                    setExportOpen(false)
+                    setExporting(true)
+                    exportDetailPDF(exportData()).finally(() => setExporting(false))
+                  }}
                   className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
                   <FileText size={14} className="text-slate-400" /> Export PDF
