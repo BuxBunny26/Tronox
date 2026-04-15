@@ -188,8 +188,11 @@ export default function JobCardList() {
                         <td className="px-4 py-3 text-xs text-slate-500">{card.order_priority ?? '—'}</td>
                         <td className="px-4 py-3"><Badge status={card.status} /></td>
                         <td className="px-4 py-3">
-                          <Link to={`/job-cards/${card.id}`}>
-                            <ChevronRight size={16} className="text-slate-400 hover:text-brand-600" />
+                          <Link
+                            to={`/job-cards/${card.id}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 hover:bg-brand-500 hover:text-white transition-colors duration-150"
+                          >
+                            View <ChevronRight size={13} />
                           </Link>
                         </td>
                       </tr>
