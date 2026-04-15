@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Plus, Search, Filter, ChevronRight, AlarmClock } from 'lucide-react'
+import { Plus, Search, Filter, ChevronRight, AlarmClock, Download } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import Badge from '../../components/Badge'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import ExportModal from '../../components/ExportModal'
 import { formatDate } from '../../lib/utils'
 import { JOB_STATUSES } from '../../lib/constants'
 
@@ -16,6 +17,7 @@ export default function JobCardList() {
   const [plants, setPlants] = useState([])
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
+  const [showExport, setShowExport] = useState(false)
 
   const search    = searchParams.get('search') ?? ''
   const status    = searchParams.get('status') ?? ''
@@ -69,6 +71,7 @@ export default function JobCardList() {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   return (
+    <>
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
@@ -76,15 +79,24 @@ export default function JobCardList() {
           <h1 className="text-xl font-bold text-slate-800">Job Cards</h1>
           <p className="text-sm text-slate-500 mt-0.5">{totalCount} total records</p>
         </div>
-        {canCreate && (
-          <Link
-            to="/job-cards/new"
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-brand-700 text-white text-sm font-medium rounded-lg hover:bg-brand-800 transition-colors"
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowExport(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
           >
-            <Plus size={15} />
-            New Job Card
-          </Link>
-        )}
+            <Download size={15} />
+            Export
+          </button>
+          {canCreate && (
+            <Link
+              to="/job-cards/new"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-brand-700 text-white text-sm font-medium rounded-lg hover:bg-brand-800 transition-colors"
+            >
+              <Plus size={15} />
+              New Job Card
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -250,5 +262,13 @@ export default function JobCardList() {
         </div>
       )}
     </div>
+
+    {showExport && (
+      <ExportModal
+        onClose={() => setShowExport(false)}
+        initialFilters={{ status, plantId }}
+      />
+    )}
+  </>
   )
 }

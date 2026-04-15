@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ChevronLeft, Edit, CheckSquare, MapPin, Calendar, Clock,
-  User, AlertCircle, ClipboardCheck, FileText, Wrench,
+  User, AlertCircle, ClipboardCheck, FileText, Wrench, Download, ChevronDown,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
@@ -10,6 +10,7 @@ import Badge from '../../components/Badge'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { formatDate, formatDateTime, formatDuration } from '../../lib/utils'
 import { DELAY_CODES } from '../../lib/constants'
+import { exportDetailPDF, exportDetailExcel } from '../../lib/export'
 
 export default function JobCardDetail() {
   const { id } = useParams()
@@ -23,6 +24,17 @@ export default function JobCardDetail() {
   const [delays, setDelays]     = useState([])
   const [downtime, setDowntime] = useState([])
   const [loading, setLoading]   = useState(true)
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportRef = useRef(null)
+
+  // Close export dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (exportRef.current && !exportRef.current.contains(e.target)) setExportOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const exportData = () => ({ card, equipment, operations, completion, delays, downtime })
 
   useEffect(() => {
     async function load() {
@@ -105,6 +117,33 @@ export default function JobCardDetail() {
           <p className="text-sm text-slate-500 font-mono">{card.order_no}</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
+          {/* Export dropdown */}
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => setExportOpen(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <Download size={14} />
+              Export
+              <ChevronDown size={12} className={`transition-transform ${exportOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {exportOpen && (
+              <div className="absolute right-0 mt-1 w-36 bg-white rounded-xl shadow-lg border border-slate-200 z-20 overflow-hidden">
+                <button
+                  onClick={() => { exportDetailPDF(exportData()); setExportOpen(false) }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <FileText size={14} className="text-slate-400" /> Export PDF
+                </button>
+                <button
+                  onClick={() => { exportDetailExcel(exportData()); setExportOpen(false) }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <Download size={14} className="text-slate-400" /> Export Excel
+                </button>
+              </div>
+            )}
+          </div>
           {canComplete && card.status !== 'completed' && card.status !== 'closed' && (
             <Link
               to={`/job-cards/${id}/complete`}
