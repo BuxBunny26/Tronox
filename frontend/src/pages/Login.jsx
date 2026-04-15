@@ -34,7 +34,7 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Branding */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Tronox" className="h-16 w-auto object-contain mx-auto mb-4" />
+          <img src="/logo.webp" alt="Tronox" className="h-16 w-auto object-contain mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white">Tronox CM Portal</h1>
           <p className="text-brand-300 text-sm mt-1">Condition Monitoring — Powered by Wearcheck</p>
         </div>
