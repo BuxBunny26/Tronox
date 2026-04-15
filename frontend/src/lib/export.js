@@ -4,74 +4,63 @@ import * as XLSX from 'xlsx'
 import { formatDate, formatDateTime } from './utils'
 import { DELAY_CODES } from './constants'
 
-// --- Monochrome palette ---
-const BLACK  = [0, 0, 0]
-const WHITE  = [255, 255, 255]
-const D_GREY = [30, 30, 30]
-const M_GREY = [100, 100, 100]
-const L_GREY = [240, 240, 240]
-const XL_GREY = [250, 250, 250]
+// ── Professional palette ──────────────────────────────────────
+const GREEN   = [128, 188, 0]   // Tronox accent #80BC00
+const DARK    = [32,  32,  32]  // primary text
+const MID     = [100, 100, 100] // secondary text / labels
+const LIGHT   = [130, 130, 130] // muted text
+const DIVIDER = [220, 220, 220] // rules / borders
+const TBLHDR  = [50,  55,  65]  // table header fill (dark slate)
+const ROW_ALT = [248, 249, 250] // alternating row bg
+const SECTION = [245, 246, 248] // section kv background
+const WHITE   = [255, 255, 255]
 
-// --- Shared helpers ---
+// ── Status label ──────────────────────────────────────────────
 function sl(s) {
   const map = { draft: 'Draft', open: 'Open', in_progress: 'In Progress', completed: 'Completed', closed: 'Closed', cancelled: 'Cancelled' }
   return map[s] ?? s ?? '-'
 }
 
+// ── Logo loader ───────────────────────────────────────────────
 async function loadLogoDataUrl() {
   try {
     const resp = await fetch('/wearcheck-logo.png')
     const blob = await resp.blob()
-    return new Promise((resolve) => {
+    return new Promise((res) => {
       const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result)
+      reader.onloadend = () => res(reader.result)
       reader.readAsDataURL(blob)
     })
-  } catch {
-    return null
-  }
+  } catch { return null }
 }
 
 // =============================================================
 //  LIST EXPORT - PDF
 // =============================================================
 export async function exportListPDF(cards, filters = {}) {
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+  const doc  = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
   const logo = await loadLogoDataUrl()
+  const PW   = 297
+  const ML   = 12
+  const MR   = 12
 
-  // Header band
-  doc.setFillColor(...BLACK)
-  doc.rect(0, 0, 297, 22, 'F')
+  _pageHeader(doc, logo, PW, ML, 'Job Cards Export', 'List Report')
 
-  if (logo) doc.addImage(logo, 'PNG', 9, 2, 18, 18)
-  const tx = logo ? 31 : 10
-
-  doc.setFontSize(14)
-  doc.setTextColor(...WHITE)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Tronox CM Portal', tx, 10)
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Job Cards Export', tx, 16.5)
-  doc.setFontSize(7.5)
-  doc.setTextColor(200, 200, 200)
-  doc.text('Generated: ' + new Date().toLocaleString('en-ZA') + '   |   ' + cards.length + ' records', 287, 16.5, { align: 'right' })
-
-  // Thin accent line
-  doc.setFillColor(180, 180, 180)
-  doc.rect(0, 22, 297, 0.8, 'F')
-
-  // Filter row
+  // ── Filter summary bar
   const parts = []
   if (filters.dateFrom || filters.dateTo) parts.push('Date: ' + (filters.dateFrom || '...') + ' to ' + (filters.dateTo || '...'))
   if (filters.statusLabel) parts.push('Status: ' + filters.statusLabel)
   if (filters.plantName)   parts.push('Plant: ' + filters.plantName)
-  let startY = 27
+
+  let startY = 38
   if (parts.length) {
-    doc.setFontSize(7)
-    doc.setTextColor(...M_GREY)
-    doc.text('Filters: ' + parts.join('   |   '), 10, 27)
-    startY = 31
+    doc.setFillColor(245, 246, 248)
+    doc.rect(ML, startY, PW - ML - MR, 7, 'F')
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...MID)
+    doc.text('Filters: ' + parts.join('   |   '), ML + 3, startY + 5)
+    startY = 48
   }
 
   autoTable(doc, {
@@ -86,18 +75,14 @@ export async function exportListPDF(cards, filters = {}) {
       c.maintenance_activity_type ?? '-',
       sl(c.status),
     ]),
-    headStyles: { fillColor: D_GREY, textColor: WHITE, fontStyle: 'bold', fontSize: 7.5 },
-    alternateRowStyles: { fillColor: XL_GREY },
-    bodyStyles: { fontSize: 7.5, textColor: D_GREY },
-    columnStyles: { 0: { cellWidth: 32 }, 6: { cellWidth: 26 } },
-    margin: { left: 10, right: 10 },
-    styles: { overflow: 'linebreak', cellPadding: 2.5 },
+    headStyles:         { fillColor: TBLHDR, textColor: WHITE, fontStyle: 'bold', fontSize: 8, cellPadding: 3 },
+    alternateRowStyles: { fillColor: ROW_ALT },
+    bodyStyles:         { fontSize: 8, textColor: DARK, cellPadding: 2.8 },
+    columnStyles:       { 0: { cellWidth: 32 }, 6: { cellWidth: 26 } },
+    margin:             { left: ML, right: MR },
+    styles:             { overflow: 'linebreak', lineColor: DIVIDER, lineWidth: 0.2 },
     didDrawPage: (data) => {
-      const n = doc.internal.getNumberOfPages()
-      doc.setFontSize(7)
-      doc.setTextColor(...M_GREY)
-      doc.text('Page ' + data.pageNumber + ' of ' + n, 287, 207, { align: 'right' })
-      doc.text('Tronox CM Portal - Wearcheck Reliability Solutions', 10, 207)
+      _pageFooter(doc, data.pageNumber, doc.internal.getNumberOfPages(), PW)
     },
   })
 
@@ -145,97 +130,100 @@ export function exportListExcel(cards, filters = {}) {
 //  SINGLE JOB CARD - PDF
 // =============================================================
 export async function exportDetailPDF({ card, equipment, operations, completion, delays, downtime }) {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const logo = await loadLogoDataUrl()
-  const PW = 210
-  const ML = 12
-  const MR = 12
-  const CW = PW - ML - MR
+  const PW   = 210
+  const ML   = 14
+  const MR   = 14
+  const CW   = PW - ML - MR
 
-  // Header band
-  doc.setFillColor(...BLACK)
-  doc.rect(0, 0, PW, 28, 'F')
-  doc.setFillColor(160, 160, 160)
-  doc.rect(0, 28, PW, 1, 'F')
+  _pageHeader(doc, logo, PW, ML, 'Job Card Report', card.order_no ? 'Order No. ' + card.order_no : '')
 
-  if (logo) doc.addImage(logo, 'PNG', ML, 3.5, 20, 20)
-  const hx = logo ? ML + 24 : ML
+  let y = 42
 
-  doc.setFontSize(15)
-  doc.setTextColor(...WHITE)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Job Card Report', hx, 12)
-  doc.setFontSize(8.5)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(200, 200, 200)
-  doc.text('Tronox CM Portal - Wearcheck Reliability Solutions', hx, 19)
-  doc.setFontSize(7.5)
-  doc.setTextColor(160, 160, 160)
-  doc.text('Generated: ' + new Date().toLocaleString('en-ZA'), PW - MR, 22, { align: 'right' })
-
-  let y = 34
-
-  // Title card
-  doc.setFillColor(...XL_GREY)
-  doc.rect(ML, y, CW, 18, 'F')
-  doc.setDrawColor(210, 210, 210)
+  // ── Title block (order highlight) ────────────────────────────
+  doc.setFillColor(...ROW_ALT)
+  doc.setDrawColor(...DIVIDER)
   doc.setLineWidth(0.3)
-  doc.rect(ML, y, CW, 18, 'S')
+  doc.rect(ML, y, CW, 20, 'FD')
+  // Green left accent bar
+  doc.setFillColor(...GREEN)
+  doc.rect(ML, y, 3, 20, 'F')
 
-  doc.setFontSize(11)
+  doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...D_GREY)
-  doc.text(card.description_of_work_order || card.order_no || '-', ML + 4, y + 7, { maxWidth: CW - 8 })
+  doc.setTextColor(...DARK)
+  doc.text(card.description_of_work_order || card.order_no || '-', ML + 7, y + 8, { maxWidth: CW - 10 })
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...M_GREY)
-  doc.text('Order No: ' + (card.order_no ?? '-') + '   |   Status: ' + sl(card.status) + '   |   Plant: ' + (card.plants?.name ?? '-'), ML + 4, y + 13.5)
+  doc.setTextColor(...MID)
+  const statusText = 'Status: ' + sl(card.status) + '   |   Plant: ' + (card.plants?.name ?? '-')
+  doc.text(statusText, ML + 7, y + 15)
 
-  y += 22
+  y += 25
 
-  // Section heading helper
+  // ── Section heading helper ────────────────────────────────────
   const section = (title) => {
-    if (y > 248) { doc.addPage(); _pageFooter(doc); y = 16 }
-    doc.setFillColor(...D_GREY)
-    doc.rect(ML, y, CW, 6.5, 'F')
-    doc.setFontSize(7.5)
+    if (y > 252) { doc.addPage(); _pageHeader(doc, null, PW, ML, 'Job Card Report', card.order_no ?? ''); y = 42 }
+    // Label
+    doc.setFontSize(8)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...WHITE)
-    doc.text(title.toUpperCase(), ML + 3, y + 4.5)
-    y += 9
+    doc.setTextColor(...GREEN)
+    doc.text(title.toUpperCase(), ML, y + 4)
+    // Underline rule
+    doc.setDrawColor(...DIVIDER)
+    doc.setLineWidth(0.5)
+    const labelWidth = doc.getTextWidth(title.toUpperCase())
+    doc.line(ML + labelWidth + 2, y + 3.5, ML + CW, y + 3.5)
+    y += 8
   }
 
-  // Key-value grid helper
+  // ── Key-Value grid helper ─────────────────────────────────────
   const kvGrid = (pairs, cols = 2) => {
-    const colW = CW / cols
+    const colW    = CW / cols
+    const rowH    = 12
+    const totalRows = Math.ceil(pairs.length / cols)
+
     pairs.forEach(([label, value], i) => {
       const col = i % cols
       const row = Math.floor(i / cols)
-      const x = ML + col * colW
-      const ry = y + row * 13
+      const x   = ML + col * colW
+      const ry  = y + row * rowH
+
+      // Alternating row background
       if (row % 2 === 0) {
-        doc.setFillColor(...XL_GREY)
-        doc.rect(ML, ry - 1, CW, 12.5, 'F')
+        doc.setFillColor(...ROW_ALT)
+        doc.rect(ML, ry, CW, rowH - 0.5, 'F')
       }
+
+      // Label
       doc.setFontSize(6.5)
       doc.setFont('helvetica', 'normal')
-      doc.setTextColor(...M_GREY)
-      doc.text(label, x + 2, ry + 4)
-      doc.setFontSize(8)
+      doc.setTextColor(...LIGHT)
+      doc.text(String(label), x + 3, ry + 4.5)
+
+      // Value
+      doc.setFontSize(8.5)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(...D_GREY)
-      doc.text(String(value ?? '-'), x + 2, ry + 9.5, { maxWidth: colW - 4 })
+      doc.setTextColor(...DARK)
+      doc.text(String(value ?? '-'), x + 3, ry + 9.5, { maxWidth: colW - 6 })
     })
-    const totalRows = Math.ceil(pairs.length / cols)
-    y += totalRows * 13 + 3
-    if (y > 248) { doc.addPage(); _pageFooter(doc); y = 16 }
+
+    // Bottom divider
+    doc.setDrawColor(...DIVIDER)
+    doc.setLineWidth(0.3)
+    doc.line(ML, y + totalRows * rowH, ML + CW, y + totalRows * rowH)
+
+    y += totalRows * rowH + 6
+    if (y > 252) { doc.addPage(); _pageHeader(doc, null, PW, ML, 'Job Card Report', card.order_no ?? ''); y = 42 }
   }
 
+  // ── Sections ──────────────────────────────────────────────────
   section('Job Details')
   kvGrid([
-    ['Functional Location', card.functional_location_text],
-    ['Equipment',           card.equipment],
-    ['Alternative Label',   card.alternative_label],
+    ['Functional Location',  card.functional_location_text],
+    ['Equipment',            card.equipment],
+    ['Alternative Label',    card.alternative_label],
     ['Maintenance Activity', card.maintenance_activity_type],
   ])
 
@@ -263,33 +251,35 @@ export async function exportDetailPDF({ card, equipment, operations, completion,
       startY: y,
       head: [['Opr No', 'Ctrl Key', 'Work/C', 'System Condition', 'Description']],
       body: operations.map(op => [op.opr_no ?? '-', op.ctrl_key ?? '-', op.work_c ?? '-', op.system_condition ?? '-', op.description ?? '-']),
-      headStyles:         { fillColor: D_GREY, textColor: WHITE, fontSize: 7, fontStyle: 'bold', cellPadding: 2 },
-      bodyStyles:         { fontSize: 7.5, cellPadding: 2, textColor: D_GREY },
-      alternateRowStyles: { fillColor: XL_GREY },
+      headStyles:         { fillColor: TBLHDR, textColor: WHITE, fontSize: 7.5, fontStyle: 'bold', cellPadding: 2.5 },
+      bodyStyles:         { fontSize: 8, cellPadding: 2.5, textColor: DARK },
+      alternateRowStyles: { fillColor: ROW_ALT },
+      styles:             { lineColor: DIVIDER, lineWidth: 0.2 },
       margin:             { left: ML, right: MR },
       tableWidth:         CW,
     })
-    y = doc.lastAutoTable.finalY + 5
+    y = doc.lastAutoTable.finalY + 8
   }
 
   if (equipment?.length) {
-    if (y > 230) { doc.addPage(); _pageFooter(doc); y = 16 }
+    if (y > 235) { doc.addPage(); _pageHeader(doc, null, PW, ML, 'Job Card Report', card.order_no ?? ''); y = 42 }
     section('Order Object List')
     autoTable(doc, {
       startY: y,
       head: [['Functional Location Code', 'Description']],
       body: equipment.map(eq => [eq.functional_location_code ?? '-', eq.description ?? '-']),
-      headStyles:         { fillColor: D_GREY, textColor: WHITE, fontSize: 7, fontStyle: 'bold', cellPadding: 2 },
-      bodyStyles:         { fontSize: 7.5, cellPadding: 2, textColor: D_GREY },
-      alternateRowStyles: { fillColor: XL_GREY },
+      headStyles:         { fillColor: TBLHDR, textColor: WHITE, fontSize: 7.5, fontStyle: 'bold', cellPadding: 2.5 },
+      bodyStyles:         { fontSize: 8, cellPadding: 2.5, textColor: DARK },
+      alternateRowStyles: { fillColor: ROW_ALT },
+      styles:             { lineColor: DIVIDER, lineWidth: 0.2 },
       margin:             { left: ML, right: MR },
       tableWidth:         CW,
     })
-    y = doc.lastAutoTable.finalY + 5
+    y = doc.lastAutoTable.finalY + 8
   }
 
   if (completion) {
-    if (y > 230) { doc.addPage(); _pageFooter(doc); y = 16 }
+    if (y > 235) { doc.addPage(); _pageHeader(doc, null, PW, ML, 'Job Card Report', card.order_no ?? ''); y = 42 }
     section('Completion Data')
     kvGrid([
       ['Actual Hours',  completion.actual_working_hours != null ? completion.actual_working_hours + ' hrs' : null],
@@ -298,22 +288,22 @@ export async function exportDetailPDF({ card, equipment, operations, completion,
       ['Task End',      formatDateTime(completion.task_end_datetime)],
     ])
     if (completion.notes) {
-      if (y > 245) { doc.addPage(); _pageFooter(doc); y = 16 }
-      doc.setFontSize(7)
+      if (y > 248) { doc.addPage(); _pageHeader(doc, null, PW, ML, 'Job Card Report', card.order_no ?? ''); y = 42 }
+      doc.setFontSize(7.5)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(...M_GREY)
+      doc.setTextColor(...MID)
       doc.text('Completion Notes', ML, y)
-      y += 4
+      y += 5
       doc.setFont('helvetica', 'normal')
-      doc.setTextColor(...D_GREY)
+      doc.setTextColor(...DARK)
       const lines = doc.splitTextToSize(completion.notes, CW)
       doc.text(lines, ML, y)
-      y += lines.length * 4.5 + 4
+      y += lines.length * 5 + 6
     }
   }
 
   if (delays?.length) {
-    if (y > 230) { doc.addPage(); _pageFooter(doc); y = 16 }
+    if (y > 235) { doc.addPage(); _pageHeader(doc, null, PW, ML, 'Job Card Report', card.order_no ?? ''); y = 42 }
     section('Delays / Not-Done Codes')
     autoTable(doc, {
       startY: y,
@@ -322,17 +312,18 @@ export async function exportDetailPDF({ card, equipment, operations, completion,
         const meta = DELAY_CODES.find(c => c.code === d.delay_code)
         return [d.delay_code, meta?.description ?? d.delay_code, d.duration_hours ?? '-']
       }),
-      headStyles:         { fillColor: D_GREY, textColor: WHITE, fontSize: 7, fontStyle: 'bold', cellPadding: 2 },
-      bodyStyles:         { fontSize: 7.5, cellPadding: 2, textColor: D_GREY },
-      alternateRowStyles: { fillColor: XL_GREY },
+      headStyles:         { fillColor: TBLHDR, textColor: WHITE, fontSize: 7.5, fontStyle: 'bold', cellPadding: 2.5 },
+      bodyStyles:         { fontSize: 8, cellPadding: 2.5, textColor: DARK },
+      alternateRowStyles: { fillColor: ROW_ALT },
+      styles:             { lineColor: DIVIDER, lineWidth: 0.2 },
       margin:             { left: ML, right: MR },
       tableWidth:         CW,
     })
-    y = doc.lastAutoTable.finalY + 5
+    y = doc.lastAutoTable.finalY + 8
   }
 
   if (downtime?.length) {
-    if (y > 230) { doc.addPage(); _pageFooter(doc); y = 16 }
+    if (y > 235) { doc.addPage(); _pageHeader(doc, null, PW, ML, 'Job Card Report', card.order_no ?? ''); y = 42 }
     section('Downtime Events')
     autoTable(doc, {
       startY: y,
@@ -344,27 +335,34 @@ export async function exportDetailPDF({ card, equipment, operations, completion,
         dt.duration_hours != null ? dt.duration_hours.toFixed(1) : '-',
         dt.notes ?? '',
       ]),
-      headStyles:         { fillColor: D_GREY, textColor: WHITE, fontSize: 7, fontStyle: 'bold', cellPadding: 2 },
-      bodyStyles:         { fontSize: 7.5, cellPadding: 2, textColor: D_GREY },
-      alternateRowStyles: { fillColor: XL_GREY },
+      headStyles:         { fillColor: TBLHDR, textColor: WHITE, fontSize: 7.5, fontStyle: 'bold', cellPadding: 2.5 },
+      bodyStyles:         { fontSize: 8, cellPadding: 2.5, textColor: DARK },
+      alternateRowStyles: { fillColor: ROW_ALT },
+      styles:             { lineColor: DIVIDER, lineWidth: 0.2 },
       margin:             { left: ML, right: MR },
       tableWidth:         CW,
     })
-    y = doc.lastAutoTable.finalY + 5
+    y = doc.lastAutoTable.finalY + 8
   }
 
   if (card.notes) {
-    if (y > 235) { doc.addPage(); _pageFooter(doc); y = 16 }
+    if (y > 240) { doc.addPage(); _pageHeader(doc, null, PW, ML, 'Job Card Report', card.order_no ?? ''); y = 42 }
     section('Notes')
-    doc.setFontSize(8.5)
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...D_GREY)
+    doc.setTextColor(...DARK)
     const lines = doc.splitTextToSize(card.notes, CW)
     doc.text(lines, ML, y)
-    y += lines.length * 5 + 4
+    y += lines.length * 5 + 6
   }
 
-  _pageFooter(doc)
+  // Stamp all footers
+  const total = doc.internal.getNumberOfPages()
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p)
+    _pageFooter(doc, p, total, PW)
+  }
+
   doc.save('JobCard_' + (card.order_no ?? card.id) + '_' + _today() + '.pdf')
 }
 
@@ -406,14 +404,18 @@ export function exportDetailExcel({ card, equipment, operations, completion, del
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary')
 
   if (operations?.length) {
-    const ops = [['Opr No', 'Ctrl Key', 'Work/C', 'System Condition', 'Description'],
-      ...operations.map(op => [op.opr_no ?? '', op.ctrl_key ?? '', op.work_c ?? '', op.system_condition ?? '', op.description ?? ''])]
+    const ops = [
+      ['Opr No', 'Ctrl Key', 'Work/C', 'System Condition', 'Description'],
+      ...operations.map(op => [op.opr_no ?? '', op.ctrl_key ?? '', op.work_c ?? '', op.system_condition ?? '', op.description ?? '']),
+    ]
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ops), 'Operations')
   }
 
   if (equipment?.length) {
-    const eq = [['Functional Location Code', 'Description'],
-      ...equipment.map(e => [e.functional_location_code ?? '', e.description ?? ''])]
+    const eq = [
+      ['Functional Location Code', 'Description'],
+      ...equipment.map(e => [e.functional_location_code ?? '', e.description ?? '']),
+    ]
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(eq), 'Equipment')
   }
 
@@ -431,30 +433,36 @@ export function exportDetailExcel({ card, equipment, operations, completion, del
   }
 
   if (delays?.length) {
-    const del = [['Code', 'Description', 'Duration (hrs)'],
+    const del = [
+      ['Code', 'Description', 'Duration (hrs)'],
       ...delays.map(d => {
         const meta = DELAY_CODES.find(c => c.code === d.delay_code)
         return [d.delay_code, meta?.description ?? d.delay_code, d.duration_hours ?? '']
-      })]
+      }),
+    ]
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(del), 'Delays')
   }
 
   if (downtime?.length) {
-    const dt = [['Type', 'Start', 'End', 'Duration (hrs)', 'Notes'],
+    const dt = [
+      ['Type', 'Start', 'End', 'Duration (hrs)', 'Notes'],
       ...downtime.map(d => [
         d.is_breakdown ? 'Breakdown' : 'Planned',
         formatDateTime(d.started_at) ?? '',
         formatDateTime(d.ended_at) ?? '',
         d.duration_hours ?? '',
         d.notes ?? '',
-      ])]
+      ]),
+    ]
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dt), 'Downtime')
   }
 
   XLSX.writeFile(wb, 'JobCard_' + (card.order_no ?? card.id) + '_' + _today() + '.xlsx')
 }
 
-// --- Internal helpers ---
+// =============================================================
+//  Internal helpers
+// =============================================================
 function _today() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -467,16 +475,63 @@ function _autoColWidth(ws, rows) {
   }))
 }
 
-function _pageFooter(doc) {
-  const n = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= n; i++) {
-    doc.setPage(i)
-    doc.setDrawColor(180, 180, 180)
-    doc.setLineWidth(0.4)
-    doc.line(12, 288, 198, 288)
-    doc.setFontSize(7)
-    doc.setTextColor(...M_GREY)
-    doc.text('Page ' + i + ' of ' + n, 198, 292, { align: 'right' })
-    doc.text('Tronox CM Portal - Wearcheck Reliability Solutions', 12, 292)
+/**
+ * Shared page header: white background, WearCheck logo left,
+ * title right, Tronox green accent bar at bottom.
+ */
+function _pageHeader(doc, logo, PW, ML, title, subtitle) {
+  const HEADER_H = 32
+
+  // White header background
+  doc.setFillColor(...WHITE)
+  doc.rect(0, 0, PW, HEADER_H, 'F')
+
+  // Logo
+  if (logo) doc.addImage(logo, 'PNG', ML, 5, 22, 22)
+  const textX = logo ? ML + 26 : ML
+
+  // Title
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...DARK)
+  doc.text(title, textX, 14)
+
+  // Subtitle (left, beside title)
+  if (subtitle) {
+    doc.setFontSize(8.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...MID)
+    doc.text(subtitle, textX, 21)
   }
+
+  // Generated timestamp (right-aligned)
+  doc.setFontSize(7.5)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...LIGHT)
+  doc.text(new Date().toLocaleString('en-ZA'), PW - ML, 14, { align: 'right' })
+  doc.text('Tronox CM Portal - Wearcheck Reliability Solutions', PW - ML, 21, { align: 'right' })
+
+  // Green accent bar at bottom of header
+  doc.setFillColor(...GREEN)
+  doc.rect(0, HEADER_H - 2, PW, 2, 'F')
+
+  // Thin light rule beneath accent
+  doc.setDrawColor(...DIVIDER)
+  doc.setLineWidth(0.2)
+  doc.line(0, HEADER_H, PW, HEADER_H)
+}
+
+/**
+ * Page footer: thin rule, page number right, company name left.
+ */
+function _pageFooter(doc, current, total, PW) {
+  const FOOTER_Y = PW === 297 ? 204 : 288
+  doc.setDrawColor(...DIVIDER)
+  doc.setLineWidth(0.4)
+  doc.line(14, FOOTER_Y, PW - 14, FOOTER_Y)
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...LIGHT)
+  doc.text('Tronox CM Portal - Wearcheck Reliability Solutions', 14, FOOTER_Y + 4)
+  doc.text('Page ' + current + ' of ' + total, PW - 14, FOOTER_Y + 4, { align: 'right' })
 }
