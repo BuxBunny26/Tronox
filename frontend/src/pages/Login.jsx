@@ -29,18 +29,28 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-700 flex flex-col items-center justify-center p-4">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center p-4 relative"
+      style={{
+        backgroundImage: 'url(/site-bg.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+      }}
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-brand-900/75" />
+
       {/* Card */}
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm relative z-10">
         {/* Branding */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Tronox" className="h-16 w-auto object-contain mx-auto mb-4" />
+          <img src="/logo.png" alt="Tronox" className="h-16 w-auto object-contain mx-auto mb-4 drop-shadow-lg" />
           <h1 className="text-2xl font-bold text-white">Tronox CM Portal</h1>
-          <p className="text-brand-300 text-sm mt-1">Condition Monitoring — Powered by Wearcheck</p>
+          <p className="text-slate-300 text-sm mt-1">Condition Monitoring — Powered by Wearcheck</p>
         </div>
 
         {/* Form card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6">
+        <div className="bg-white rounded-2xl shadow-2xl p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-5">Sign in to your account</h2>
 
           {error && (
@@ -99,7 +109,7 @@ export default function Login() {
           </form>
         </div>
 
-        <p className="text-center text-brand-400 text-xs mt-6">
+        <p className="text-center text-slate-300 text-xs mt-6">
           Access is restricted to authorised personnel only.
           <br />Contact your administrator if you need access.
         </p>
