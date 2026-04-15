@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -9,10 +10,12 @@ import JobCardForm from './pages/JobCards/JobCardForm'
 import JobCardDetail from './pages/JobCards/JobCardDetail'
 import CompletionForm from './pages/JobCards/CompletionForm'
 import Users from './pages/Admin/Users'
+import Settings from './pages/Admin/Settings'
 import NotFound from './pages/NotFound'
 
 export default function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
         <Routes>
@@ -34,11 +37,20 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="admin/settings"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </ThemeProvider>
   )
 }

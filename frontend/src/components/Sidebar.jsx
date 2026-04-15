@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   Users,
+  Settings,
   LogOut,
   X,
   ChevronRight,
@@ -11,9 +12,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { cn } from '../lib/utils'
 
 const navItems = [
-  { to: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, always: true },
-  { to: '/job-cards',  label: 'Job Cards',  icon: ClipboardList,   always: true },
-  { to: '/admin/users',label: 'Users',      icon: Users,           adminOnly: true },
+  { to: '/dashboard',       label: 'Dashboard',  icon: LayoutDashboard, always: true },
+  { to: '/job-cards',       label: 'Job Cards',  icon: ClipboardList,   always: true },
+  { to: '/admin/users',     label: 'Users',      icon: Users,           adminOnly: true },
+  { to: '/admin/settings',  label: 'Settings',   icon: Settings,        adminOnly: true },
 ]
 
 export default function Sidebar({ onClose }) {

@@ -81,12 +81,13 @@ export default function Users() {
 
   const startEdit = (user) => {
     setEditId(user.id)
-    setEditData({ role: user.role, plant_id: user.plant_id ?? '', is_active: user.is_active })
+    setEditData({ full_name: user.full_name ?? '', role: user.role, plant_id: user.plant_id ?? '', is_active: user.is_active })
   }
 
   const saveEdit = async (userId) => {
     setSaving(true)
     await supabase.from('profiles').update({
+      full_name: editData.full_name || null,
       role: editData.role,
       plant_id: editData.plant_id || null,
       is_active: editData.is_active,
@@ -203,8 +204,18 @@ export default function Users() {
                         <div className="w-8 h-8 rounded-full bg-brand-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {user.full_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? '?'}
                         </div>
-                        <div>
-                          <p className="font-medium text-slate-800">{user.full_name ?? '—'}</p>
+                        <div className="min-w-0">
+                          {editId === user.id ? (
+                            <input
+                              type="text"
+                              value={editData.full_name}
+                              onChange={e => setEditData(d => ({ ...d, full_name: e.target.value }))}
+                              placeholder="Full name"
+                              className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 mb-0.5"
+                            />
+                          ) : (
+                            <p className="font-medium text-slate-800">{user.full_name ?? '—'}</p>
+                          )}
                           <p className="text-xs text-slate-400">{user.email}</p>
                         </div>
                       </div>
