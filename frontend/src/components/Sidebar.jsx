@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, Link, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   ClipboardList,
@@ -33,13 +33,13 @@ export default function Sidebar({ onClose }) {
     <div className="flex flex-col h-full bg-brand-700 text-white w-64">
       {/* Logo / Header */}
       <div className="flex items-center justify-between px-4 h-16 border-b border-brand-600 flex-shrink-0">
-        <div className="flex items-center gap-2">
+        <Link to="/dashboard" onClick={onClose} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <img src="/logo.png" alt="Tronox" className="h-7 w-auto object-contain" />
           <div className="leading-tight">
             <p className="font-bold text-sm text-white">Tronox CM</p>
             <p className="text-brand-300 text-xs">Condition Monitoring</p>
           </div>
-        </div>
+        </Link>
         <button
           onClick={onClose}
           className="lg:hidden p-1 rounded text-brand-300 hover:text-white hover:bg-brand-600"
