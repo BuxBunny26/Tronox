@@ -146,8 +146,8 @@ export async function exportDetailPDF({ card, equipment, operations, completion,
   doc.setDrawColor(...DIVIDER)
   doc.setLineWidth(0.3)
   doc.rect(ML, y, CW, 20, 'FD')
-  // Green left accent bar
-  doc.setFillColor(...GREEN)
+  // Light grey left accent bar
+  doc.setFillColor(200, 200, 200)
   doc.rect(ML, y, 3, 20, 'F')
 
   doc.setFontSize(12)
@@ -168,7 +168,7 @@ export async function exportDetailPDF({ card, equipment, operations, completion,
     // Label
     doc.setFontSize(8)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...GREEN)
+    doc.setTextColor(...DARK)
     doc.text(title.toUpperCase(), ML, y + 4)
     // Underline rule
     doc.setDrawColor(...DIVIDER)
@@ -511,8 +511,8 @@ function _pageHeader(doc, logo, PW, ML, title, subtitle) {
   doc.text(new Date().toLocaleString('en-ZA'), PW - ML, 14, { align: 'right' })
   doc.text('Tronox CM Portal - Wearcheck Reliability Solutions', PW - ML, 21, { align: 'right' })
 
-  // Green accent bar at bottom of header
-  doc.setFillColor(...GREEN)
+  // Light grey accent bar at bottom of header
+  doc.setFillColor(210, 210, 210)
   doc.rect(0, HEADER_H - 2, PW, 2, 'F')
 
   // Thin light rule beneath accent
