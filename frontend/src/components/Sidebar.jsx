@@ -36,7 +36,7 @@ export default function Sidebar({ onClose }) {
       {/* Logo / Header */}
       <div className="flex items-center justify-between px-4 h-16 border-b border-brand-600 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <img src="/logo.webp" alt="Tronox" className="h-7 w-auto object-contain" />
+          <img src="/logo.png" alt="Tronox" className="h-7 w-auto object-contain" />
           <div className="leading-tight">
             <p className="font-bold text-sm text-white">Tronox CM</p>
             <p className="text-brand-300 text-xs">Condition Monitoring</p>
