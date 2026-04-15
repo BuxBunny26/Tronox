@@ -6,7 +6,6 @@ import {
   LogOut,
   X,
   ChevronRight,
-  Activity,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { cn } from '../lib/utils'
@@ -35,9 +34,7 @@ export default function Sidebar({ onClose }) {
       {/* Logo / Header */}
       <div className="flex items-center justify-between px-4 h-16 border-b border-brand-600 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-accent-500 rounded flex items-center justify-center">
-            <Activity size={14} className="text-white" />
-          </div>
+          <img src="/logo.png" alt="Tronox" className="h-7 w-auto object-contain" />
           <div className="leading-tight">
             <p className="font-bold text-sm text-white">Tronox CM</p>
             <p className="text-brand-300 text-xs">Condition Monitoring</p>

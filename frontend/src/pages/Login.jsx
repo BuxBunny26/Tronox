@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Activity, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -34,9 +34,7 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-accent-500 rounded-2xl mb-4 shadow-lg">
-            <Activity size={28} className="text-white" />
-          </div>
+          <img src="/logo.png" alt="Tronox" className="h-16 w-auto object-contain mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white">Tronox CM Portal</h1>
           <p className="text-brand-300 text-sm mt-1">Condition Monitoring — Powered by Wearcheck</p>
         </div>
