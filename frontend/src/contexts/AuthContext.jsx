@@ -32,6 +32,9 @@ export function AuthProvider({ children }) {
         setUser(u)
         if (u) {
           fetchProfile(u.id)
+          if (_event === 'SIGNED_IN') {
+            supabase.from('login_events').insert({ user_id: u.id }).then(() => {})
+          }
         } else {
           setProfile(null)
           setLoading(false)

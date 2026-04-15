@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { Moon, Sun, Check, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Moon, Sun, Check, X, Clock, RefreshCw } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { ROLES } from '../../lib/constants'
 import Users from './Users'
 
-const TABS = ['Appearance', 'Users & Roles', 'My Profile']
+const TABS = ['Appearance', 'Users & Roles', 'Login History', 'My Profile']
 
 // Permission matrix for the Roles tab
 const PERMISSIONS = [
@@ -39,6 +39,31 @@ export default function Settings() {
   const [saving, setSaving]     = useState(false)
   const [saved, setSaved]       = useState(false)
   const [saveError, setSaveError] = useState('')
+
+  // Login History state
+  const [loginRows, setLoginRows]     = useState([])
+  const [loginCounts, setLoginCounts] = useState({})
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError]   = useState('')
+
+  const fetchLoginHistory = async () => {
+    setLoginLoading(true)
+    setLoginError('')
+    const [{ data: users, error: ue }, { data: events, error: ee }] = await Promise.all([
+      supabase.rpc('admin_get_user_logins'),
+      supabase.from('login_events').select('user_id'),
+    ])
+    setLoginLoading(false)
+    if (ue || ee) { setLoginError((ue || ee).message); return }
+    const counts = {}
+    ;(events || []).forEach(e => { counts[e.user_id] = (counts[e.user_id] || 0) + 1 })
+    setLoginRows(users || [])
+    setLoginCounts(counts)
+  }
+
+  useEffect(() => {
+    if (tab === 'Login History') fetchLoginHistory()
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSaveProfile = async (e) => {
     e.preventDefault()
@@ -175,6 +200,81 @@ export default function Settings() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Login History ── */}
+      {tab === 'Login History' && (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock size={15} className="text-slate-500" />
+              <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">User Login History</h2>
+            </div>
+            <button
+              onClick={fetchLoginHistory}
+              disabled={loginLoading}
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={loginLoading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
+
+          {loginError && (
+            <div className="px-4 py-3 text-sm text-red-600 bg-red-50">{loginError}</div>
+          )}
+
+          {loginLoading && !loginRows.length ? (
+            <div className="px-4 py-8 text-center text-sm text-slate-400">Loading…</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50">
+                    <th className="text-left px-4 py-2.5 text-xs font-medium text-slate-500 uppercase tracking-wide">User</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-medium text-slate-500 uppercase tracking-wide">Role</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-medium text-slate-500 uppercase tracking-wide">Last Login</th>
+                    <th className="text-center px-4 py-2.5 text-xs font-medium text-slate-500 uppercase tracking-wide">Total Logins</th>
+                    <th className="text-center px-4 py-2.5 text-xs font-medium text-slate-500 uppercase tracking-wide">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loginRows.map(u => (
+                    <tr key={u.user_id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-slate-800">{u.full_name || '—'}</div>
+                        <div className="text-xs text-slate-400">{u.email}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 capitalize">
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">
+                        {u.last_sign_in_at
+                          ? new Date(u.last_sign_in_at).toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })
+                          : <span className="text-slate-400">Never</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center text-slate-700 font-medium">
+                        {loginCounts[u.user_id] || 0}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {u.is_active
+                          ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
+                          : <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Inactive</span>}
+                      </td>
+                    </tr>
+                  ))}
+                  {!loginRows.length && !loginLoading && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">No users found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
